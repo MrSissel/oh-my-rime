@@ -1,0 +1,7 @@
+# default.yaml 的用户覆写
+# 参考: https://www.mintimate.cc/zh/guide/configurationOverride.html
+
+patch:
+  schema_list:
+    - schema: double_pinyin         # 自然码双拼（默认，含 uU 拆字反查）
+    - schema: rime_mint             # 薄荷拼音
