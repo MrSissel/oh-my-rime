@@ -26,3 +26,6 @@ patch:
       ascii_mode: true
     com.jetbrains.intellij: # idea
       ascii_mode: true
+    md.obsidian:
+      ascii_mode: true
+      vim_mode: true
