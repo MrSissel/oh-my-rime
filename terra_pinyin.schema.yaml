@@ -1,7 +1,7 @@
 schema:
   schema_id: terra_pinyin
   name: "地球拼音-薄荷定制"
-  version: "24.10.02"
+  version: "26.03.27"
   author:
     - 佛振 <chen.sst@gmail.com>
     - mintimate < @Mintimate|https://www.mintimate.cn >
@@ -50,6 +50,7 @@ engine:
     - affix_segmentor@wubi98_mint
     - affix_segmentor@radical_reverse_lookup
     - affix_segmentor@stroke
+    - affix_segmentor@unicode
     - abc_segmentor
     - punct_segmentor
     - fallback_segmentor
@@ -65,12 +66,13 @@ engine:
     - reverse_lookup_translator@radical_reverse_lookup
     - reverse_lookup_translator@stroke
     - script_translator
+    - lua_translator@*unicode_translator                # Unicode 编码候选
     - lua_translator@*force_gc                           # 暴力GC，尝试解决小狼毫长期使用的卡顿
   filters:
     - lua_filter@*autocap_filter           # 英文自动大写
     - simplifier@emoji_suggestion         # Emoji OpenCC
     - simplifier@transcription_cc         # 繁体&简体 OpenCC
-    - lua_filter@*reduce_english_filter    # 降低部分英语单词在候选项的位置
+    - lua_filter@*reduce_english_filter    # 将部分英文候选调整到指定位置
     - uniquifier                          # 去重
 
 #shijian:仅仅作为提示使用，编码已经写死，引导键可以在key_binder下修改前缀
@@ -153,14 +155,14 @@ emoji_suggestion:
 codeLengthLimit_processor: 25
 
 
-# Lua 配置: 降低部分英语单词在候选项的位置。
+# Lua 配置: 将部分英文候选调整到指定位置。
 # 详细介绍 https://dvel.me/posts/make-rime-en-better/#短单词置顶的问题
-# 正常情况： 输入 rug 得到 「1.rug 2.如果 …… 」
-# 降低之后： 输入 rug 得到 「1.如果 2.rug …… 」
+# 万象高词频下，英文可能被压到较后位置
+# 调整后：命中的英文会移到 idx 指定的候选位
 reduce_english_filter:
     mode: all  # all | none | custom | 『留白』
-    idx: 2        # 降低到第 idx 个位置
-    # 自定义的单词列表，示例列表没有降低部分常用单词，如 and cat mail Mac but bad shit ……
+    idx: 2        # 调整到第 idx 个位置
+    # 自定义的单词列表，示例列表没有调整部分常用单词，如 and cat mail Mac but bad shit ……
     words: [aid, ann,
     bail, bait, bam, band, bans, bat, bay, bend, bent, benz, bib, bid, bien, biz, boc, bop, bos, bud, buf,
     cab, cad, cain, cam, cans, cap, cas, cef, chad, chan, chap, chef, cher, chew, chic, chin, chip, chit, coup, cum, cunt, cur,
@@ -170,7 +172,7 @@ reduce_english_filter:
     hail, ham, hank, hans, hat, hay, heil, heir, hem, hep, hud, hum, hung, hunk, hut,
     jim, jug,
     kat,
-    lab, lad, lag, laid, lam, laos, lap, lat, lax, lay, led, leg, lex, liam, lib, lid, lied, lien, lies, linn, lip, lit, liz, lob, lug, lund, lung, lux,
+    lab, lad, lag, laid, lam, laos, lap, lat, lax, lay, led, leg, lex, liam, lib, lid, lied, lien, lies, linn, lip, lit, liz, lob, lua, lug, lund, lung, lux,
     mag, maid, mann, mar, mat, med, mel, mend, mens, ment, mil, mins, mint, mob, moc, mop, mos, mot, mud, mug, mum, nail,
     nap, nat, nay, neil, nib, nip, noun, nous, nun, nut,
     pac, paid, pail, pain, pair, pak, pal, pam, pans, pant, pap, par, pat, paw, pax, pens, pic, pier, pies, pins, pint, pit, pix, pod, pop, pos, pot, pour, pow, pub,
@@ -217,7 +219,8 @@ speller:
     - xform/^(.*)ǘ(.*)$/$1v$2②/
     - xform/^(.*)ǚ(.*)$/$1v$2③/
     - xform/^(.*)ǜ(.*)$/$1v$2④/
-    - xform/^(.*)ü(.*)$/$1v$2①/
+    - xform/^(.*)ü(.+)$/$1v$2/      # ü 后还有内容（如 nüe④），声调在其他元音上，不额外加声调
+    - xform/^(.*)ü$/$1v①/            # ü 在末尾（如轻声 nü），近似为一声
     - xlit/①②③④/1234                  # 万象 END
     - xform/^r5$/er5/
     - erase/^xx$/
@@ -231,6 +234,7 @@ speller:
     - abbrev/^([a-z])[a-z]*$/$1/       # 简拼（首字母）
     - abbrev/^([zcs]h).+$/$1/
     - derive/^([nl])ve/$1ue/
+    - derive/^([nl])ue/$1ve/
     - derive/^([jqxy])u/$1v/
     - derive/([dtnlgkhrzcs])un/$1uen/
     - derive/ui/uei/
@@ -476,9 +480,15 @@ punctuator:
       "<": ["《", "〈", "«", "<"]
       ">": ["》", "〉", "»", ">"]
 
+unicode:
+  tag: unicode
+  prefix: "Uc"
+  tips: 〔Unicode〕
+
 recognizer:
   import_preset: default
   patterns:
+    unicode: "^Uc[a-z]*'?$"
     url: "^[a-z]+[.].+$"
     punct: "^/([0-9]0?|[a-zA-Z]+)$"
     wubi98_mint: "Uw[a-z]*'?$"
